@@ -146,7 +146,7 @@
           const bufferFraction = player.getVideoLoadedFraction();
           const delayFinished = Date.now() >= notBefore;
 
-          if (bufferFraction >= MIN_BUFFER_FRACTION && delayFinished) {
+          if (bufferFraction >= MIN_BUFFER_FRACTION || delayFinished) {
             window.clearInterval(timer);
             updateStatus('Play requested');
             player.playVideo();
