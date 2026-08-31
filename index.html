@@ -56,6 +56,7 @@
     (() => {
       const query = new URLSearchParams(window.location.search);
       const status = document.getElementById('status');
+      const START_DELAY_MS = 5000;
 
       // The page-level parameter is mute=0 by default. YouTube's embed
       // parameter also uses numeric values: mute=0 enables sound and mute=1
@@ -143,8 +144,12 @@
                 iframe.allowFullscreen = true;
               }
 
-              status.hidden = true;
-              event.target.playVideo();
+              status.textContent = 'Starting YouTube…';
+              status.hidden = false;
+              window.setTimeout(() => {
+                status.hidden = true;
+                event.target.playVideo();
+              }, START_DELAY_MS);
 
               if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
                 document.documentElement.requestFullscreen().catch(() => {
