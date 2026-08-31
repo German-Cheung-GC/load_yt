@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <meta name="build-timestamp-utc" content="2026-08-31T16:54:38Z">
+  <meta name="build-timestamp-utc" content="2026-08-31T17:24:47Z">
   <title>Loading ...</title>
   <style>
     :root { color-scheme: dark; }
@@ -68,6 +68,8 @@
     (() => {
       const query = new URLSearchParams(window.location.search);
       const status = document.getElementById('status');
+      let activePlayer = null;
+      let audioStartHandled = false;
       const delayStartRaw = query.get('delay_start');
       const delayStartValue = delayStartRaw === null || delayStartRaw.trim() === ''
         ? 5
@@ -157,6 +159,21 @@
         }[state] || 'Loading';
       }
 
+      function startAudioPlayback() {
+        if (muted || !activePlayer || audioStartHandled) return;
+
+        audioStartHandled = true;
+        activePlayer.unMute();
+        activePlayer.setVolume(100);
+        activePlayer.playVideo();
+        status.textContent = 'Playing with audio';
+        status.hidden = false;
+      }
+
+      // If the browser blocks unmuted autoplay, the first page click supplies
+      // the user gesture needed to start playback with audio.
+      window.addEventListener('pointerdown', startAudioPlayback, { passive: true });
+
       async function launchYouTubePlayer() {
         const requestedUrl = query.get('url');
         if (!requestedUrl) {
@@ -189,6 +206,7 @@
           events: {
             onReady: (event) => {
               const player = event.target;
+              activePlayer = player;
               const iframe = document.querySelector('#player iframe');
               if (iframe) {
                 iframe.allow = 'autoplay; fullscreen; picture-in-picture';
@@ -199,6 +217,11 @@
                 status.textContent = `${label} · ${getBufferText(player)}`;
                 status.hidden = false;
               };
+
+              if (!muted) {
+                player.unMute();
+                player.setVolume(100);
+              }
 
               updateStatus(`Player ready; starting in ${delayStartSeconds}s`);
               window.setInterval(() => {
@@ -215,6 +238,12 @@
                 document.documentElement.requestFullscreen().catch(() => {
                   // Browser fullscreen normally requires a user gesture.
                 });
+              }
+            },
+            onAutoplayBlocked: () => {
+              if (!muted) {
+                status.textContent = 'Autoplay blocked; click once to play with audio';
+                status.hidden = false;
               }
             },
             onStateChange: (event) => {
