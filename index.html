@@ -6,7 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <meta name="build-timestamp-utc" content="2026-08-31T16:13:03Z">
+  <meta name="build-timestamp-utc" content="2026-08-31T16:54:38Z">
   <title>Loading ...</title>
   <style>
     :root { color-scheme: dark; }
@@ -68,7 +68,14 @@
     (() => {
       const query = new URLSearchParams(window.location.search);
       const status = document.getElementById('status');
-      const START_DELAY_MS = 5000;
+      const delayStartRaw = query.get('delay_start');
+      const delayStartValue = delayStartRaw === null || delayStartRaw.trim() === ''
+        ? 5
+        : Number(delayStartRaw);
+      const delayStartSeconds = Number.isFinite(delayStartValue) && delayStartValue >= 0
+        ? delayStartValue
+        : 5;
+      const START_DELAY_MS = delayStartSeconds * 1000;
 
       // The page-level parameter is mute=0 by default. YouTube's embed
       // parameter also uses numeric values: mute=0 enables sound and mute=1
@@ -193,7 +200,7 @@
                 status.hidden = false;
               };
 
-              updateStatus('Player ready; starting in 5s');
+              updateStatus(`Player ready; starting in ${delayStartSeconds}s`);
               window.setInterval(() => {
                 updateStatus(getStateText(player.getPlayerState()));
               }, 500);
