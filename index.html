@@ -58,7 +58,6 @@
       const query = new URLSearchParams(window.location.search);
       const status = document.getElementById('status');
       const START_DELAY_MS = 5000;
-      const MIN_BUFFER_FRACTION = 0.3;
 
       // The page-level parameter is mute=0 by default. YouTube's embed
       // parameter also uses numeric values: mute=0 enables sound and mute=1
@@ -140,23 +139,6 @@
         }[state] || 'Loading';
       }
 
-      function waitForBufferThenPlay(player, delayMs, updateStatus) {
-        const notBefore = Date.now() + delayMs;
-        const timer = window.setInterval(() => {
-          const bufferFraction = player.getVideoLoadedFraction();
-          const delayFinished = Date.now() >= notBefore;
-
-          if (bufferFraction >= MIN_BUFFER_FRACTION || delayFinished) {
-            window.clearInterval(timer);
-            updateStatus('Play requested');
-            player.playVideo();
-            return;
-          }
-
-          updateStatus(`Waiting for buffer >= ${MIN_BUFFER_FRACTION * 100}%`);
-        }, 250);
-      }
-
       async function launchYouTubePlayer() {
         const requestedUrl = query.get('url');
         if (!requestedUrl) {
@@ -170,7 +152,7 @@
         playerElement.style.pointerEvents = interactive ? 'auto' : 'none';
 
         const playerVars = {
-          autoplay: 0,
+          autoplay: 1,
           controls: 0,
           disablekb: 1,
           loop: loopEnabled ? 1 : 0,
@@ -200,8 +182,16 @@
                 status.hidden = false;
               };
 
-              updateStatus('Player ready; waiting for buffer');
-              waitForBufferThenPlay(player, START_DELAY_MS, updateStatus);
+              updateStatus('Player ready; starting in 5s');
+              window.setInterval(() => {
+                updateStatus(getStateText(player.getPlayerState()));
+              }, 500);
+
+              status.hidden = false;
+              window.setTimeout(() => {
+                updateStatus('Play requested');
+                player.playVideo();
+              }, START_DELAY_MS);
 
               if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
                 document.documentElement.requestFullscreen().catch(() => {
@@ -211,11 +201,10 @@
             },
             onStateChange: (event) => {
               if (event.data === YT.PlayerState.ENDED && loopEnabled && !playlist) {
+                status.textContent = `Replaying · ${getBufferText(event.target)}`;
+                status.hidden = false;
                 event.target.seekTo(0, true);
-                waitForBufferThenPlay(event.target, 0, (label) => {
-                  status.textContent = `${label} · ${getBufferText(event.target)}`;
-                  status.hidden = false;
-                });
+                event.target.playVideo();
                 return;
               }
 
