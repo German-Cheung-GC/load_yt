@@ -63,6 +63,8 @@
       // silences playback.
       const muteValue = query.get('mute') || '0';
       const muted = /^(1|true|yes|on)$/i.test(muteValue);
+      const loopValue = query.get('loop') || '1';
+      const loopEnabled = /^(1|true|yes|on)$/i.test(loopValue);
 
       function parseYouTubeUrl(value) {
         const source = new URL(value, window.location.href);
@@ -147,7 +149,7 @@
           autoplay: 1,
           controls: 0,
           disablekb: 1,
-          loop: 1,
+          loop: loopEnabled ? 1 : 0,
           mute: muted ? 1 : 0,
           playsinline: 1,
           rel: 0
@@ -192,6 +194,14 @@
               }
             },
             onStateChange: (event) => {
+              if (event.data === YT.PlayerState.ENDED && loopEnabled && !playlist) {
+                status.textContent = `Replaying · ${getBufferText(event.target)}`;
+                status.hidden = false;
+                event.target.seekTo(0, true);
+                event.target.playVideo();
+                return;
+              }
+
               status.textContent = `${getStateText(event.data)} · ${getBufferText(event.target)}`;
               status.hidden = false;
             },
